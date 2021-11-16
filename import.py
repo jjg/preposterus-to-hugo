@@ -1,4 +1,6 @@
 import json
+from datetime import datetime
+
 from bs4 import BeautifulSoup
 import html2text
 import codecs
@@ -25,8 +27,11 @@ with open('./input/posts.json') as posts_file:
         # * author
 
         output = '---\n'
-        output = output + 'title: ' + selected_post['title'] + '\n'
-        output = output + 'date: ' + selected_post['date'] + '\n'
+        # TODO: If the title contains a ', it breaks the Markdown parser: fix this.
+        output = output + 'title: \'' + selected_post['title'] + '\'\n'
+        date_string = selected_post['date'].split('-')[0][:-1]
+        date = datetime.strptime(date_string,'%a, %d %b %Y %H:%M:%S') 
+        output = output + 'date: \'' + date.isoformat() + '\'\n'
         output = output + 'author: ' + selected_post['author'] + '\n'
         output = output + 'draft: false\n'
         output = output + 'tags:\n'
@@ -38,17 +43,23 @@ with open('./input/posts.json') as posts_file:
 
         # parse HTML into python object
         with open(post_html_filename) as post_html_data:
+
+            print(f"processing {post_html_filename}")
+
             post_html = BeautifulSoup(post_html_data,"lxml")
 
             # identify and copy images 
             image_tags = post_html.findAll('img')
             for image_tag in image_tags:
-                image_tag['src'] = '/preposterous/' + image_tag['src']
+                #image_tag['src'] = '/preposterous/' + image_tag['src']
+                image_tag['src'] = '/' + image_tag['src']
+
 
             # TODO: handle other assets (video, audio, etc.)
 
             # reformat as markdown
-            html = post_html.find('div', class_='content').prettify()
+            html = post_html.find('article').prettify()
+
             markdown = html2text.html2text(html)
 
             output = output + markdown
